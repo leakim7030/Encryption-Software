@@ -13,3 +13,6 @@ To decrypt this message you are currently required to enter the encrypted string
 
 There are a lot of improvements or further development that could be done to improve user experience
 
+ERRORS:
+DB schema should be updated to remove keyID from passwords table
+
