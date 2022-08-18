@@ -41,19 +41,24 @@ def encrypt_message(message, which_key):
 
     for a in message:
         for b in longList:
+            print(longList)
             if a == charsFunc[b]:
+                print(encrypted_message)
                 encrypted_message += key[b]
 
     sql = '''Insert into Messages (Message,keyId)
             Values (
             ?, ?
             );'''
+
+    print(encrypted_message)
     try:
         cursor = conn.cursor()
         cursor.execute(sql, (encrypted_message, which_key))
 
         conn.commit()
         cursor.close()
+        return encrypted_message
     except:
         print("Error adding message to DB")
 
@@ -63,7 +68,6 @@ def Generate_password(domain, password_length, username): # , which_key REMOVED
     charsFunc = chars
 
     password = ""
-    #key = get_key(which_key)
 
     for a in range(password_length):
         password += charsFunc[random.randint(0, len(charsFunc) - 1)]
@@ -104,15 +108,16 @@ def locks_to_db(how_many_locks):
 
 
 def get_key(key):
-
+    print(key)
     cursor = conn.cursor()
     sql = '''select Key
     from Keys
-    where keyId = ?'''
-    result = cursor.execute(sql, [str(key), ]).fetchone()
+    where keyId = ?;'''
+    result = cursor.execute(sql, (str(key), )).fetchall()
     cursor.close()
+    print(result)
     result = list(result[0])
-
+    print(result)
     return result
 
 
@@ -144,8 +149,7 @@ def retrieve_password(domain):
             
             where P.Domain = ?;
             
-    ''' #    inner join Keys K
-        #    on P.KeyId = K.KeyId REMOVED
+    '''
     try:
         cursor = conn.cursor()
 
@@ -237,7 +241,7 @@ def setup_pin_questions():
 def initial_setup_completed(): #Check if there exists a pin and security questions
 
     sql = '''Select pinCode
-        from Pin
+        from Pin;
     '''
     cursor = conn.cursor()
 
@@ -270,7 +274,7 @@ def update_password(domain, username):
 
 def find_all_accounts():
     sql = ''' Select domain, username
-            From Passwords
+            From Passwords;
     '''
     cursor = conn.cursor()
     result = cursor.execute(sql).fetchall()
@@ -280,15 +284,14 @@ def find_all_accounts():
 def validate_pin_questions():
 
     sql_pin = '''Select PinCode
-            From Pin
+            From Pin;
     '''
     cursor = conn.cursor()
-
 
     pin_code_db = cursor.execute(sql_pin,).fetchone()
 
     sql_security_questions = '''select SecurityQuestion, SecurityAnswer
-                            from SecurityQuestions
+                            from SecurityQuestions;
     '''
 
     sql_security_questions_db = cursor.execute((sql_security_questions)).fetchall()
@@ -296,7 +299,7 @@ def validate_pin_questions():
     random_question = random.randint(0,len(sql_security_questions_db))
 
     correct = False
-                            #### IKKE FERDIG
+
     while not correct:
 
         pin_code_validate = int(input("Enter Pin Code: "))
@@ -311,7 +314,28 @@ def validate_pin_questions():
 
         else:
             break
-                                #####
+def check_if_key_exists(keyid):
+    sql = '''select *
+            from Keys
+            where KeyId = ?;
+    '''
+    cursor = conn.cursor()
+    result = cursor.execute(sql,(keyid,)).fetchall()
+    cursor.close()
+    if len(result) >= 1:
+        return True
+    else:
+        return False
+def last_key_inserted():
+    sql = '''select keyId
+            from Keys
+            order by keyId DESC;
+    '''
+    cursor = conn.cursor()
+    result = cursor.execute(sql,).fetchone()
+    cursor.close()
+    return str(result[0])
+    #####
 
 
 # Press the green button in the gutter to run the script.
@@ -382,11 +406,13 @@ if __name__ == '__main__':
 
         print("\nWhat would you like to do?\n\n")
         print("1. Change Pin Code and security questions")
-        print("2. Generate new keys for encrpyted messages (needs to happen at least once with at least one, max 1 000 keys per add) ")
+        print("2. Generate new keys for encrpyted messages")
         print("3. Store a new password")
         print("4. Retrieve password and username")
         print("5. Update password")
         print("6. Find all accounts")
+        print("7. Encrypt message")
+        # print("8. Decrypt message with key")'
         print("0. Exit program")
 
         first_choice = int(input())
@@ -394,8 +420,7 @@ if __name__ == '__main__':
         if first_choice == 1: # TO BE CHANGE PIN CODE
             setup_pin_questions()
 
-        # Generate unique keys
-        elif first_choice == 2:
+        elif first_choice == 2: # Generate unique keys
             how_many_locks = 0
             while how_many_locks not in range(1, 1000):
                 try:
@@ -404,24 +429,46 @@ if __name__ == '__main__':
                     print("Must be numbers and between 1-999")
             locks_to_db(how_many_locks)
 
-        elif first_choice == 3:
+        elif first_choice == 3: # store a new password for a domain
             domain_input = str(input("Enter a domain, E.g Facebook: ")).lower()
             password_length_input = int(input("Enter a password length: "))
             username_input = str(input(("Enter a username: "))).lower()
             #input("To which lock/code e.g you have 100 locks, and now select lock 30) do you want: "))
             Generate_password(domain_input, password_length_input, username_input) # , which_key_input REMOVED
 
-        elif first_choice == 4:
+        elif first_choice == 4: # show password for a domain
             domain_input_retrieve = str(input("Enter a domain, E.g Facebook: ")).lower()
             print(retrieve_password(domain_input_retrieve))
 
-        elif first_choice == 5:
+        elif first_choice == 5: # change password for a domain
             password_change_domain = str(input("Which domain would you like to update password for: "))
             password_change_username = str(input(f"What is the username for {password_change_domain}? "))
             update_password(password_change_domain,password_change_username)
 
-        elif first_choice == 6:
+        elif first_choice == 6: # find all accounts
             find_all_accounts()
+
+        elif first_choice == 7: # encrypt message
+            message_to_encrypt = str(input("Enter a message to encrypt: "))
+            while 1:
+                which_key_id = str(input('''\nWhich key-Id would you like to use? If you have not created a key yet,
+use the generate keys function first (press 0 and enter): '''))
+                if check_if_key_exists(which_key_id) == True and which_key_id != 0:
+                    False
+                    message_show = encrypt_message(message_to_encrypt, which_key_id)
+                    print(f"\n--- Encrypted Message --- \n{message_show} \n")
+                    break
+                elif which_key_id == str("0"):
+                    locks_to_db(1)
+                    print(f" This is the keyId you created: {last_key_inserted()}")
+                else:
+                    print("\nYou need to generate a new key, or select another one")
+
+
+
+
+
+
 
 
         elif first_choice == 0:
