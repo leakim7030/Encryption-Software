@@ -6,11 +6,10 @@ chars = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "a", "b", "c", "d", "
          "l", "m", "n", "o", "p", "q", "r", "s", "t"
     , "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
          "Q", "R", "S"
-    , "T", "U", "V", "W", "X", "Y", "Z", ".", ",", "-", "!", "?", "|", "+", "$", "{", "}", "%", "€", "*", " "]
+    , "T", "U", "V", "W", "X", "Y", "Z", "æ", "Æ", "ø", "Ø", "å", "Å", ".", ",", "-", "!", "?", "|", "+", "$", "{", "}", "%", "€", "*", " "]
 
 
 def create_keys():
-
     charsFunc = chars
     length_chars = len(chars)
     key = []
@@ -24,7 +23,9 @@ def create_keys():
             else:
                 print("Something happened while creating keys")
                 break
+
     to_string = "".join(key)
+
     return to_string
 
 
@@ -37,13 +38,11 @@ def encrypt_message(message, which_key):
             longList.append(charsFunc.index(char))
 
     encrypted_message = ""
-    key = get_key(which_key)
+    key = get_key(which_key)[0]
 
     for a in message:
         for b in longList:
-            print(longList)
             if a == charsFunc[b]:
-                print(encrypted_message)
                 encrypted_message += key[b]
 
     sql = '''Insert into Messages (Message,keyId)
@@ -95,9 +94,12 @@ def Generate_password(domain, password_length, username): # , which_key REMOVED
     return password
 
 def locks_to_db(how_many_locks):
-
+    how_many_locks = 1 # Hardcoded because of error while adding more than one lock
     cursor = conn.cursor()
-    keys = [create_keys() for i in range(how_many_locks)]
+    keys = []
+    for i in range(how_many_locks):
+        keys.append(create_keys())
+
     sql = '''INSERT INTO Keys (Key)
             VALUES (?);
     '''
@@ -115,9 +117,9 @@ def get_key(key):
     where keyId = ?;'''
     result = cursor.execute(sql, (str(key), )).fetchall()
     cursor.close()
-    print(result)
+
     result = list(result[0])
-    print(result)
+
     return result
 
 
@@ -337,6 +339,18 @@ def last_key_inserted():
     return str(result[0])
     #####
 
+def check_keys():
+    sql = '''select *
+    from Keys
+    '''
+    cursor = conn.cursor()
+    result = cursor.execute(sql,).fetchall()
+    cursor.close()
+
+    for key in result:
+        print(key)
+
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -463,6 +477,8 @@ use the generate keys function first (press 0 and enter): '''))
                     print(f" This is the keyId you created: {last_key_inserted()}")
                 else:
                     print("\nYou need to generate a new key, or select another one")
+        elif first_choice == 8:
+            check_keys()
 
 
 
